@@ -2,15 +2,23 @@
 
 namespace App\Security;
 
+use App\Repository\UserRepository;
 use Symfony\Component\Routing\Router;
+use App\Security\OAuthRegistrationService;
+use League\OAuth2\Client\Token\AccessToken;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use KnpU\OAuth2ClientBundle\Client\ClientRegistry;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use KnpU\OAuth2ClientBundle\Client\OAuth2ClientInterface;
+use League\OAuth2\Client\Provider\ResourceOwnerInterface;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use KnpU\OAuth2ClientBundle\Security\Authenticator\OAuth2Authenticator;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
+use Symfony\Component\Security\Http\Authenticator\Passport\Badge\RememberMeBadge;
+use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
 
 
 abstract class AbstractOAuthAuthenticator extends OAuth2Authenticator 
@@ -23,7 +31,9 @@ abstract class AbstractOAuthAuthenticator extends OAuth2Authenticator
 
     public function __construct(
         private readonly ClientRegistry $clientRegistry,
-        private readonly Router $router
+        private readonly Router $router,
+        private readonly UserRepository $repository,
+        private readonly OAuthRegistrationService $registrationService
     ) {
 
     }
@@ -56,8 +66,32 @@ abstract class AbstractOAuthAuthenticator extends OAuth2Authenticator
 
     public function authenticate(Request $request): Passport
     {
-        
+        $credentials = $this->fetchAccessToken($this->getClient());
+        $resourceOwner = $this->getResourceOwnerFromCredentials($credentials);
+        $user = $this->getUserFromResourceOwner($resourceOwner, $this->repository);
+
+        if (null ===$user) {
+            $user = $this->registrationService->persist($resourceOwner);
+        }
+
+        return new SelfValidatingPassport(
+            userBadge: new UserBadge($user->getUserIdentifier(), fn () => $user),
+            badges: [
+                new RememberMeBadge()
+            ]
+        );
     }
 
+    protected function getResourceOwnerFromCredentials(AccessToken $credentials): ResourceOwnerInterface
+    {
+        return $this->getClient()->fetchUserFromToken($credentials);
+    }
+
+    private function getClient(): OAuth2ClientInterface
+    {
+        return $this->ClientRegistry->getClient($this->serviceName);
+    }
+
+    abstract protected function getUserFromResourceOwner(ResourceOwnerInterface $resourceOwner, UserRepository $repository): ?User;
 
 }
