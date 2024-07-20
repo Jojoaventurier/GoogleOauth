@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Security;
 
 use App\Entity\User;
@@ -27,7 +29,11 @@ public function persist(ResourceOwnerInterface $resourceOwner): User
     $user = (new User())
     ->setEmail($resourceOwner->getEmail())
     ->setGoogleId($resourceOwner->getId());
-    //  $user = match (true) {
+
+     $this->repository->add($user, flush: true);
+     return $user;
+
+      //  $user = match (true) {
     //     $resourceOwner instanceof GoogleUser => (new User())
     //     ->setEmail($resourceOwner->getEmail())
     //     ->setGoogleId($resourceOwner->getId()),
@@ -35,9 +41,6 @@ public function persist(ResourceOwnerInterface $resourceOwner): User
     //     ->setEmail($resourceOwner->getEmail()
     //     ->setGithubId($resourceOwner->getId()))
     //  };
-
-     $this->repository->add($user, flush: true);
-     return $user;
 
 
 }

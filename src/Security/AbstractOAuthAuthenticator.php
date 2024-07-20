@@ -2,6 +2,7 @@
 
 namespace App\Security;
 
+use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Security\OAuthRegistrationService;
 use League\OAuth2\Client\Token\AccessToken;
@@ -42,8 +43,26 @@ abstract class AbstractOAuthAuthenticator extends OAuth2Authenticator
 
     public function supports(Request $request): ?bool
     {
-        return 'auth_oauth_check' === $request->attributes->get('_route') &&
+        return 'auth_oauth_check' === $request->attributes->get(key:'_route') && 
             $request->get(key:'service') === $this->serviceName;
+    }
+
+    public function authenticate(Request $request): Passport
+    {
+        $credentials = $this->fetchAccessToken($this->getClient());
+        $resourceOwner = $this->getResourceOwnerFromCredentials($credentials);
+        $user = $this->getUserFromResourceOwner($resourceOwner, $this->repository);
+
+        if (null === $user) {
+            $user = $this->registrationService->persist($resourceOwner, $this->repository);
+        }
+
+        return new SelfValidatingPassport(
+            userBadge: new UserBadge($user->getUserIdentifier(), fn () => $user),
+            badges: [
+                new RememberMeBadge()
+            ]
+        );
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
@@ -66,23 +85,7 @@ abstract class AbstractOAuthAuthenticator extends OAuth2Authenticator
         return new RedirectResponse($this->router->generate(name:'auth_oauth_login'));
     }
 
-    public function authenticate(Request $request): Passport
-    {
-        $credentials = $this->fetchAccessToken($this->getClient());
-        $resourceOwner = $this->getResourceOwnerFromCredentials($credentials);
-        $user = $this->getUserFromResourceOwner($resourceOwner, $this->repository);
-
-        if (null ===$user) {
-            $user = $this->registrationService->persist($resourceOwner);
-        }
-
-        return new SelfValidatingPassport(
-            userBadge: new UserBadge($user->getUserIdentifier(), fn () => $user),
-            badges: [
-                new RememberMeBadge()
-            ]
-        );
-    }
+ 
 
     protected function getResourceOwnerFromCredentials(AccessToken $credentials): ResourceOwnerInterface
     {
@@ -91,9 +94,11 @@ abstract class AbstractOAuthAuthenticator extends OAuth2Authenticator
 
     private function getClient(): OAuth2ClientInterface
     {
-        return $this->ClientRegistry->getClient($this->serviceName);
+        return $this->clientRegistry->getClient($this->serviceName);
     }
 
     abstract protected function getUserFromResourceOwner(ResourceOwnerInterface $resourceOwner, UserRepository $repository): ?User;
+
+ 
 
 }
