@@ -46,13 +46,18 @@ abstract class AbstractOAuthAuthenticator extends OAuth2Authenticator
     }
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
-{
-    if ($request->hasSession()) {
-        $request->getSession()->set(SecurityRequestAttributes::AUTHENTICATION_ERROR, $exception);
+    {
+        if ($request->hasSession()) {
+            $request->getSession()->set(SecurityRequestAttributes::AUTHENTICATION_ERROR, $exception);
     }
 
-    return new RedirectResponse($this->router->generate(name:'auth_oauth_login'));
-}
+        return new RedirectResponse($this->router->generate(name:'auth_oauth_login'));
+    }
+
+    public function authenticate(Request $request): Passport
+    {
+        
+    }
 
 
 }
