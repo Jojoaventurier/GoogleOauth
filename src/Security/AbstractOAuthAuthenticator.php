@@ -3,16 +3,18 @@
 namespace App\Security;
 
 use App\Repository\UserRepository;
-use Symfony\Component\Routing\Router;
 use App\Security\OAuthRegistrationService;
 use League\OAuth2\Client\Token\AccessToken;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\RouterInterface;
 use KnpU\OAuth2ClientBundle\Client\ClientRegistry;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use KnpU\OAuth2ClientBundle\Client\OAuth2ClientInterface;
 use League\OAuth2\Client\Provider\ResourceOwnerInterface;
+use Symfony\Component\Security\Http\Util\TargetPathTrait;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
+use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use KnpU\OAuth2ClientBundle\Security\Authenticator\OAuth2Authenticator;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
@@ -31,7 +33,7 @@ abstract class AbstractOAuthAuthenticator extends OAuth2Authenticator
 
     public function __construct(
         private readonly ClientRegistry $clientRegistry,
-        private readonly Router $router,
+        private readonly RouterInterface $router,
         private readonly UserRepository $repository,
         private readonly OAuthRegistrationService $registrationService
     ) {
@@ -47,7 +49,7 @@ abstract class AbstractOAuthAuthenticator extends OAuth2Authenticator
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
     {
         $targetPath = $this->getTargetPath($request->getSession(), $firewallName);
-        if (targetPath) {
+        if ($targetPath) {
             return new RedirectResponse($targetPath);
         }
 
