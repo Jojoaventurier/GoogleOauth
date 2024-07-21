@@ -30,8 +30,8 @@ security:
             # https://symfony.com/doc/current/security/impersonating_user.html
             # switch_user: true
             logout:
-                path: auth__oauth_logout
-                target: auth_oauth_login 
+                path: /logout
+                target: /login 
 
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
