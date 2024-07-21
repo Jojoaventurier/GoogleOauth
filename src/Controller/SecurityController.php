@@ -32,14 +32,14 @@ final class SecurityController extends AbstractController
      * @throws \Exception
      */
 
-    //  #[Route(path:'/logout', name: 'auth_oauth_logout', methods['GET'])]
-    //  public function logout() {
+     #[Route(path:'/logout', name: 'auth_oauth_logout', methods: ['GET'])]
+     public function logout() {
 
-    //      throw new \Exception(message: 'Don\'t forget to activiate logout in security.yaml');
+        //  throw new \Exception(message: 'Don\'t forget to activiate logout in security.yaml');
+        unset($_SESSION['user']);
 
-    //     //  return 'merci';
-    //  }
-
+        return $this->redirectToRoute(route:'auth_oauth_login');
+     }
 
 
 
