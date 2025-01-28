@@ -60,7 +60,5 @@ final class SecurityController extends AbstractController
      {
         return new Response(status: 200);
      }
-
-    
 }
 
